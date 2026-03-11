@@ -1,3 +1,6 @@
+import { redisClient } from "../../redis.client"
+import { StockRepository } from "./stock.repository"
+
 export interface StockInfo {
   symbol: string
   name: string
@@ -14,9 +17,11 @@ export interface StockHistory {
   close: number[]
 }
 
+
 export class StockService {
 
   private baseUrl = "https://query1.finance.yahoo.com/v8/finance/chart"
+  private repository = new StockRepository()
 
   private normalizeTicker(ticker: string): string {
     return `${ticker.toUpperCase()}.SA`
@@ -53,15 +58,34 @@ export class StockService {
     return result
   }
 
+  private async getCachedOrFetch<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+    // 1️⃣ Tenta cache Redis
+    const redisData = await redisClient.get(key)
+    if (redisData) return JSON.parse(redisData)
+
+    // 2️⃣ Tenta cache interno DAL
+    const localCache = await this.repository.get<T>(key)
+    if (localCache) return localCache
+
+    // 3️⃣ Faz fetch e salva nos caches
+    const data = await fetchFn()
+    await redisClient.setEx(key, 60, JSON.stringify(data)) // TTL 60s
+    await this.repository.set(key, data)
+    return data
+  }
+
+
   async getStockInfo(ticker: string): Promise<StockInfo> {
-    const result = await this.fetchStock(ticker)
+    return this.getCachedOrFetch(`info:${ticker.toUpperCase()}`, async () => {
+      const result = await this.fetchStock(ticker)
+      const { longName: name } = result.meta
 
-    const { longName: name } = result.meta
+      return {
+        symbol: ticker.toUpperCase(),
+        name
+      }
+    })
 
-    return {
-      symbol: ticker.toUpperCase(),
-      name
-    }
   }
 
   async getStockPrice(ticker: string): Promise<StockPrice> {

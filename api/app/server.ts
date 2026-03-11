@@ -5,7 +5,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/stocks", stockRouter)
+app.use("/stock", stockRouter)
 
 
 app.get("/", (req: Request, res: Response) => {

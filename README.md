@@ -134,7 +134,7 @@ You can test endpoints using the **REST Client extension for VSCode**.
 Example request:
 
 ```
-GET http://localhost:3000/stocks
+GET http://localhost:3000/stock
 ```
 
 ---
