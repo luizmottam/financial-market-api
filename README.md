@@ -55,6 +55,7 @@ api-stocks
 │   │       ├── stock.router.ts
 │   │       └── stock.service.ts
 │   │
+|   ├── redis.client.ts
 │   └── server.ts
 │
 ├── api.http
